@@ -1,0 +1,89 @@
+name: Playwright CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: [staging, qa]
+        default: staging
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playwright-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      # Configuration is validated by env.ts at module load, so provide harmless
+      # dummy values for a typecheck that does not connect to any service.
+      - run: npm run typecheck
+        env:
+          BASE_URL: http://localhost:3000
+          API_BASE_URL: http://localhost:3000/api
+          DB_HOST: localhost
+          DB_NAME: app_test
+          DB_USER: app_test
+
+  integration:
+    # Fork PRs do not receive secrets. Skip integration rather than failing or
+    # exposing protected credentials to untrusted PR code.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}
+    env:
+      CI: 'true'
+      HEADLESS: 'true'
+      TEST_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      DB_HOST: ${{ vars.DB_HOST }}
+      DB_PORT: ${{ vars.DB_PORT }}
+      DB_NAME: ${{ vars.DB_NAME }}
+      DB_USER: ${{ vars.DB_USER }}
+      DB_SSL: ${{ vars.DB_SSL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Execute ${{ matrix.browser }} tests
+        run: npx playwright test --project=${{ matrix.browser }}
+      - name: Upload report and test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.browser }}-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
