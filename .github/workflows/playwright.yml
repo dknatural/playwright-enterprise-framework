@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       # Configuration is validated by env.ts at module load, so provide harmless
       # dummy values for a typecheck that does not connect to any service.
       - run: npm run typecheck
@@ -75,16 +75,31 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm install --no-audit --no-fund
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run allure:clean
       - name: Execute ${{ matrix.browser }} tests
         run: npx playwright test --project=${{ matrix.browser }}
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -n "$(find allure-results -type f -print -quit 2>/dev/null)" ]; then
+            npm run allure:generate
+          else
+            echo "No Allure results were produced."
+          fi
       - name: Upload report and test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-${{ matrix.browser }}-${{ github.run_id }}
           path: |
+            allure-report/
+            allure-results/
             playwright-report/
             test-results/
           if-no-files-found: warn
