@@ -67,6 +67,8 @@ jobs:
       DB_SSL: ${{ vars.DB_SSL }}
       API_TOKEN: ${{ secrets.API_TOKEN }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      ORANGEHRM_USERNAME: ${{ secrets.ORANGEHRM_USERNAME }}
+      ORANGEHRM_PASSWORD: ${{ secrets.ORANGEHRM_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
