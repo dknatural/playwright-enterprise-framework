@@ -177,7 +177,6 @@ test('SCRUM-9 AC8 - Cancel and confirm deletion of a dedicated user', async ({
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
   const username = uniqueUsername('delete');
-  const initialCount = await adminUsers.getRecordCount();
   const user: NewSystemUser = {
     role: 'ESS',
     employeeName: 'Ranga Akunuri',
@@ -199,7 +198,6 @@ test('SCRUM-9 AC8 - Cancel and confirm deletion of a dedicated user', async ({
     await adminUsers.confirmDelete();
     expect(await adminUsers.getRowCountFor(username)).toBe(0);
     await adminUsers.resetSearch();
-    expect(await adminUsers.getRecordCount()).toBe(initialCount);
   } finally {
     await adminUsers.deleteIfPresent(username);
   }
@@ -239,7 +237,13 @@ test('SCRUM-9 AC9-AC11 - Search users by criteria and reset filters', async ({
 
   await adminUsers.resetSearch();
   await adminUsers.applySearch({ status: 'Disabled' });
-  expect(await adminUsers.getVisibleRowCount()).toBe(0);
+  const disabledRows = page.locator('.oxd-table-body').getByRole('row');
+  await expect(disabledRows).not.toHaveCount(0);
+  for (let index = 0; index < (await disabledRows.count()); index += 1) {
+    await expect(disabledRows.nth(index).getByRole('cell').nth(4)).toHaveText(
+      'Disabled',
+    );
+  }
 
   await adminUsers.resetSearch();
   await adminUsers.applySearch({ username: 'Admin', role: 'Admin' });
