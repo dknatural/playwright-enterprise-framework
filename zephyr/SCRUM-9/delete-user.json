@@ -1,0 +1,18 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - Cancel and Confirm User Deletion",
+  "objective": "Verify that cancelling deletion retains a dedicated user and confirming deletion removes it.",
+  "precondition": "The administrator can create a dedicated ESS test user.",
+  "steps": [
+    {
+      "description": "Request deletion of the dedicated test user and cancel the confirmation dialog.",
+      "expectedResult": "The confirmation dialog closes and the user remains in the list."
+    },
+    {
+      "description": "Request deletion again and confirm it.",
+      "expectedResult": "A success notification appears, the user is removed, and the result count is updated."
+    }
+  ]
+}

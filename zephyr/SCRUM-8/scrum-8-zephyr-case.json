@@ -1,0 +1,34 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-8",
+  "issueId": 10035,
+  "name": "SCRUM-8 AC4-AC5 - Valid OrangeHRM login redirects to Dashboard",
+  "objective": "Verify that valid OrangeHRM demo credentials authenticate the user and that the Dashboard page is displayed.",
+  "precondition": "OrangeHRM demo is available and ORANGEHRM_USERNAME and ORANGEHRM_PASSWORD are configured for the test environment.",
+  "statusName": "Approved",
+  "priorityName": "Normal",
+  "folderId": 62119136,
+  "labels": ["SCRUM-8", "automation"],
+  "steps": [
+    {
+      "description": "Navigate to the OrangeHRM login page.",
+      "testData": "OrangeHRM demo URL configured as BASE_URL.",
+      "expectedResult": "The OrangeHRM login form is displayed."
+    },
+    {
+      "description": "Enter valid credentials from the configured test environment and submit the login form.",
+      "testData": "ORANGEHRM_USERNAME and ORANGEHRM_PASSWORD.",
+      "expectedResult": "Authentication succeeds and the application navigates to the Dashboard."
+    },
+    {
+      "description": "Verify the Dashboard heading.",
+      "testData": "",
+      "expectedResult": "The Dashboard heading is visible."
+    },
+    {
+      "description": "Verify the resulting URL and ensure the login route is no longer active.",
+      "testData": "",
+      "expectedResult": "The URL contains /dashboard and does not contain /auth/login."
+    }
+  ]
+}

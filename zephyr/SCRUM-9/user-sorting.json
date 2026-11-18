@@ -1,0 +1,18 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - System User Table Sorting",
+  "objective": "Verify ascending and descending sorting for supported System Users columns.",
+  "precondition": "The System Users screen exposes sortable column headers and multiple records.",
+  "steps": [
+    {
+      "description": "Sort user records by each supported column in ascending order.",
+      "expectedResult": "Records are displayed in ascending order and the record count is unchanged."
+    },
+    {
+      "description": "Sort user records by each supported column in descending order.",
+      "expectedResult": "Records are displayed in descending order and the record count is unchanged."
+    }
+  ]
+}

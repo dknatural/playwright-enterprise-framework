@@ -1,0 +1,22 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - Create Admin User",
+  "objective": "Create a dedicated Admin user and verify its role, employee name, and status in System Users.",
+  "precondition": "An eligible employee record is available and the administrator is logged in.",
+  "steps": [
+    {
+      "description": "Add a user with the Admin role, valid employee name, unique username, enabled status, and matching passwords.",
+      "expectedResult": "A success notification is displayed and the user is created."
+    },
+    {
+      "description": "Search for the newly created username.",
+      "expectedResult": "The record shows the submitted username, Admin role, employee name, and Enabled status."
+    },
+    {
+      "description": "Delete the dedicated test user.",
+      "expectedResult": "The test user is removed from System Users."
+    }
+  ]
+}

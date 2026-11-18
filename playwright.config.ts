@@ -14,6 +14,9 @@ export default defineConfig({
     ['html', { open: 'never' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['allure-playwright', { resultsDir: 'allure-results' }],
+    ...(process.env.ZEPHYR_TEST_CYCLE_KEY
+      ? [['./src/reporters/zephyr.reporter.ts'] as const]
+      : []),
   ],
   use: {
     baseURL: env.baseURL,

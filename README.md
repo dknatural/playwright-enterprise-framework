@@ -1,5 +1,7 @@
 # Enterprise Playwright + TypeScript framework
 
+New to this project? Start with the [Framework Guide](./FRAMEWORK_GUIDE.md).
+
 ## Quick start
 
 1. Install Node.js 22+ and ensure a PostgreSQL test database and application are available.
@@ -13,9 +15,13 @@
 - `npm run test:ui` — Chromium project
 - `npm run test:headed` — Chromium, visible browser, one worker
 - `npm run test:debug` — Playwright Inspector
-- `npm run test:hybrid` — hybrid tests
 - `npm run test:staging` — load `.env.staging` (if present)
-- `npx playwright test tests/hybrid/user-workflow.spec.ts --project=chromium` — one test file
+- `npm run zephyr:sync-case -- <manifest.json>` — create or verify a Zephyr test case and its Jira link
+- `npm run test:scrum-8:zephyr` — run the SCRUM-8 login/Dashboard test and publish its result to Zephyr
+- `npm run test:scrum-9:zephyr` — run the SCRUM-9 login, user-management, sorting, search, validation, and cleanup tests and publish results to Zephyr
+- `npm run test:zephyr` — run the SCRUM-7 mapped Chromium test and publish its result to Zephyr
+- `npm run test:zephyr:failure-demo` — publish a deliberate failure and screenshot to Zephyr (expected to exit non-zero)
+- `npx playwright test tests/jira/JiraAndPlaywrightMCPProject/ac4-playwright-execution-results.spec.ts --project=chromium` — run one SCRUM-7 test
 - `npx playwright test -g "create user" --project=chromium` — title filter
 - `npm run report` — open HTML report
 - `npm run allure:clean` — clear previous Allure results before a fresh run
@@ -30,6 +36,57 @@ a screenshot attachment in Allure. Playwright trace capture is disabled.
 Both CI pipelines archive the Allure report and raw results alongside Playwright
 HTML, JUnit, and trace artifacts. The Allure command-line report generator requires
 Java 17+.
+
+### Zephyr Scale result publishing
+
+The `test:zephyr` command creates a named Zephyr test cycle under
+`SCRUM-7 Execution History`, runs the mapped Playwright test, and publishes each
+annotated test result as a Zephyr execution. Set `ZEPHYR_RUN_NAME` to use a CI build
+or release label; otherwise the cycle uses the CI build number or timestamp.
+Failed tests
+include their available screenshot attachments. A synchronization error fails the
+command rather than reporting a successful publish.
+
+The `test:scrum-8:zephyr` command runs the SCRUM-8 valid-login and Dashboard
+checks and publishes the result for Zephyr case `SCRUM-T4` in the
+`SCRUM-8 Execution History` cycle folder.
+
+The `test:scrum-9:zephyr` command runs the SCRUM-9 end-to-end user-management
+tests and publishes executions for cases `SCRUM-T5` through `SCRUM-T12` in the
+`SCRUM-9 Execution History` cycle folder. Its dedicated test users are removed
+by the tests after verification.
+
+Configure `ZEPHYR_SCALE_API_TOKEN` and `ZEPHYR_SCALE_API_BASE_URL` in the ignored
+local `.env` file. The default project is `SCRUM`; set `ZEPHYR_PROJECT_KEY` to
+override it. Cases `SCRUM-T2` and `SCRUM-T3` are in the `SCRUM Sprint 2` folder
+and linked to Jira story `SCRUM-7`.
+The failure-demo command intentionally fails so screenshot publication can be verified.
+Never commit or share the API token. CI publishing requires adding the token as a
+protected CI secret and setting the same environment variables there.
+
+### Creating or verifying Zephyr test cases
+
+The `zephyr:sync-case` command reads a JSON manifest containing a Jira issue key,
+the numeric issue ID returned by Jira MCP, test-case metadata, and ordered test
+steps. For example:
+
+```powershell
+npm run zephyr:sync-case -- zephyr/SCRUM-8/scrum-8-zephyr-case.json
+```
+
+The command reuses a case with an exact matching name or creates one, links it to
+the Jira issue, and verifies the link and steps. It does not replace non-empty
+steps that differ from the manifest; review those cases manually. Credentials are
+read from `.env` and are not written to the manifest. Use the returned Zephyr case
+key in the Playwright test's `zephyrCaseKey` annotation.
+Case manifests are organized by Jira story under
+`zephyr/` at the framework root.
+
+Troubleshooting cycles from initial setup are grouped in Zephyr's
+`Archive - Zephyr Setup Diagnostics` folder. Zephyr Scale's documented API does not
+support deleting test cases, cycles, or executions; remove them in the Zephyr UI if
+permanent deletion is needed. The verified pass and screenshot failure runs remain
+under `SCRUM-7 Execution History`.
 
 ## Application contract (adapt to your system)
 
