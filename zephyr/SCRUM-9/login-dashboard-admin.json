@@ -1,0 +1,22 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - Login, Dashboard, and System Users Navigation",
+  "objective": "Verify valid authentication, the Dashboard heading and widgets, Admin navigation, and System Users filters and controls.",
+  "precondition": "OrangeHRM demo administrator credentials are configured in the environment.",
+  "steps": [
+    {
+      "description": "Log in using valid administrator credentials.",
+      "expectedResult": "The user is authenticated and the Dashboard is displayed."
+    },
+    {
+      "description": "Verify the Dashboard heading and Time at Work, My Actions, and Quick Launch widgets.",
+      "expectedResult": "The Dashboard heading and expected widgets are visible."
+    },
+    {
+      "description": "Open Admin and inspect the System Users screen.",
+      "expectedResult": "The System Users heading, filters, Search, Reset, and Add controls are available."
+    }
+  ]
+}

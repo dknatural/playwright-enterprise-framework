@@ -1,0 +1,22 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - System User Record Count and Empty Results",
+  "objective": "Verify that displayed user rows match the record count, row actions are present, and no-match searches display an empty state.",
+  "precondition": "The administrator is logged in and can access System Users.",
+  "steps": [
+    {
+      "description": "Open the System Users screen and count the displayed records.",
+      "expectedResult": "The number of user rows matches the record count."
+    },
+    {
+      "description": "Inspect an existing user record.",
+      "expectedResult": "Username, role, employee name, status, and applicable Edit and Delete actions are displayed."
+    },
+    {
+      "description": "Search for a username that does not exist.",
+      "expectedResult": "No records are shown and the empty-state message is displayed."
+    }
+  ]
+}

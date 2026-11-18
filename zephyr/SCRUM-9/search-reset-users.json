@@ -1,0 +1,22 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - Search and Reset System Users",
+  "objective": "Search System Users by username, role, employee name, status, and combined criteria, then reset filters.",
+  "precondition": "The administrator is logged in and the System Users list contains records.",
+  "steps": [
+    {
+      "description": "Search by username, role, employee name, and status.",
+      "expectedResult": "Only records matching each selected criterion are displayed."
+    },
+    {
+      "description": "Apply combined username and role criteria.",
+      "expectedResult": "Only records satisfying all applied criteria are displayed."
+    },
+    {
+      "description": "Reset the search form.",
+      "expectedResult": "All filters are cleared and the default user list and count are restored."
+    }
+  ]
+}

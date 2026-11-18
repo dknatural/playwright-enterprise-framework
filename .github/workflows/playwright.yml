@@ -51,6 +51,7 @@ jobs:
     timeout-minutes: 35
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         browser: [chromium, firefox, webkit]
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}
@@ -83,7 +84,7 @@ jobs:
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run allure:clean
       - name: Execute ${{ matrix.browser }} tests
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }} --workers=1
       - name: Generate Allure report
         if: always()
         run: |
