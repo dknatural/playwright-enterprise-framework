@@ -3,22 +3,34 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "playwright test",
+    "test": "cross-env HEADLESS=false playwright test --project=chromium",
     "test:ui": "playwright test --project=chromium --headed",
-    "test:headed": "playwright test --headed --workers=1",
+    "test:headed": "cross-env HEADLESS=false playwright test --project=chromium --workers=1",
     "test:debug": "playwright test --debug --workers=1",
-    "test:hybrid": "playwright test tests/hybrid",
     "test:staging": "cross-env TEST_ENV=staging playwright test",
+    "zephyr:sync-case": "node scripts/sync-zephyr-test-case.mjs",
+    "test:scrum-8:zephyr": "cross-env ZEPHYR_STORY_KEY=SCRUM-8 node scripts/run-zephyr.mjs tests/jira/JiraAndPlaywrightMCPProject/scrum-8-orangehrm-login.spec.ts --project=chromium --workers=1",
+    "test:scrum-9:zephyr": "cross-env ZEPHYR_STORY_KEY=SCRUM-9 node scripts/run-zephyr.mjs tests/jira/JiraAndPlaywrightMCPProject/scrum-9-orangehrm-admin.spec.ts --project=chromium --workers=1",
+    "test:zephyr": "node scripts/run-zephyr.mjs tests/jira/JiraAndPlaywrightMCPProject/ac4-playwright-execution-results.spec.ts --project=chromium --workers=1",
+    "test:zephyr:failure-demo": "cross-env ALLURE_FAILURE_DEMO=true node scripts/run-zephyr.mjs tests/jira/JiraAndPlaywrightMCPProject/ac6-failure-reporting.spec.ts --project=chromium --workers=1",
+    "allure:failure-demo": "cross-env ALLURE_FAILURE_DEMO=true HEADLESS=false playwright test tests/orangehrm/login.spec.ts tests/jira/JiraAndPlaywrightMCPProject/ac6-failure-reporting.spec.ts --project=chromium --workers=1",
     "typecheck": "tsc --noEmit",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "allure:clean": "node -e \"require('node:fs').rmSync('allure-results', { recursive: true, force: true })\"",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^2.15.1",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.0",
     "typescript": "^5.7.0"
   },
-  "dependencies": {"pg": "^8.13.0"}
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
 }

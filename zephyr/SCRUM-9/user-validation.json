@@ -1,0 +1,22 @@
+{
+  "projectKey": "SCRUM",
+  "issueKey": "SCRUM-9",
+  "issueId": 10036,
+  "name": "SCRUM-9 - Validate New User Input Rules",
+  "objective": "Verify required fields, password confirmation, and duplicate username validation prevent invalid user creation.",
+  "precondition": "The administrator is logged in and an eligible employee record is available.",
+  "steps": [
+    {
+      "description": "Submit the Add User form without required fields.",
+      "expectedResult": "Required-field validation is displayed and no user is created."
+    },
+    {
+      "description": "Submit otherwise valid details with mismatched passwords.",
+      "expectedResult": "Password confirmation validation is displayed and no user is created."
+    },
+    {
+      "description": "Submit a username that already exists.",
+      "expectedResult": "Duplicate username validation is displayed and no user is created."
+    }
+  ]
+}

@@ -26,7 +26,7 @@ pipeline {
   stages {
     stage('Install') {
       steps {
-        sh 'node --version && npm install --no-audit --no-fund'
+        sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless && rm -rf /var/lib/apt/lists/* && node --version && java -version && npm ci --no-audit --no-fund'
       }
     }
     stage('Typecheck') {
@@ -36,12 +36,14 @@ pipeline {
       steps {
         withCredentials([
           string(credentialsId: 'pw-api-token', variable: 'API_TOKEN'),
-          string(credentialsId: 'pw-db-password', variable: 'DB_PASSWORD')
+          string(credentialsId: 'pw-db-password', variable: 'DB_PASSWORD'),
+          string(credentialsId: 'orangehrm-username', variable: 'ORANGEHRM_USERNAME'),
+          string(credentialsId: 'orangehrm-password', variable: 'ORANGEHRM_PASSWORD')
         ]) {
           script {
             def projectArg = params.BROWSER == 'all' ? '' : "--project=${params.BROWSER}"
             withEnv(["TEST_ENV=${params.TARGET_ENV}"]) {
-              sh "npx playwright test ${projectArg}"
+              sh "npm run allure:clean && npx playwright test ${projectArg}"
             }
           }
         }
@@ -50,8 +52,9 @@ pipeline {
   }
   post {
     always {
+      sh 'if [ -n "$(find allure-results -type f -print -quit 2>/dev/null)" ]; then npm run allure:generate; else echo "No Allure results were produced."; fi'
       junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
-      archiveArtifacts allowEmptyArchive: true, artifacts: 'playwright-report/**,test-results/**', fingerprint: true
+      archiveArtifacts allowEmptyArchive: true, artifacts: 'allure-report/**,allure-results/**,playwright-report/**,test-results/**', fingerprint: true
       // Install Jenkins HTML Publisher plugin to expose a browsable report:
       // publishHTML(target: [reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML', keepAll: true, allowMissing: true])
       cleanWs(deleteDirs: true, disableDeferredWipeout: true)
