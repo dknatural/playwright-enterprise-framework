@@ -31,7 +31,9 @@ The usual flow is:
 playwright-enterprise-framework/
 |-- .github/
 |   |-- agents/
-|   |   `-- FrameworkPlanner.agent.md
+|   |   |-- Master.agent.md
+|   |   |-- TestGenerator.agent.md
+|   |   `-- Healer.agent.md
 |   `-- workflows/
 |       `-- playwright.yml
 |-- config/
@@ -146,9 +148,10 @@ there are no Gherkin feature files or step-definition files.
   folder, creates a fresh cycle, then starts Playwright.
 - `src/reporters/zephyr.reporter.ts` reads the `zephyrCaseKey` annotation from
   each test and publishes the actual result to that cycle.
-- `.github/agents/FrameworkPlanner.agent.md` describes the Jira Story Test
-  Automator workflow. It is an optional AI-agent instruction file, not needed
-  to run Playwright tests.
+- `.github/agents/Master.agent.md` coordinates the Jira-to-test-to-Zephyr
+  workflow. `TestGenerator.agent.md` implements planned tests, and
+  `Healer.agent.md` diagnoses and repairs confirmed test-code failures. These
+  are optional AI-agent instruction files, not needed to run Playwright tests.
 
 Case manifests and test specs serve different purposes: the manifest defines
 the case in Zephyr; the spec performs the automated scenario. The case key in
