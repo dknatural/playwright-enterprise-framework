@@ -53,7 +53,14 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 bat 'npm ci --no-audit --no-fund'
-                bat 'npx playwright install chromium firefox webkit'
+
+                script {
+                    if (params.BROWSER == 'all') {
+                        bat 'npx playwright install chromium firefox webkit'
+                    } else {
+                        bat "npx playwright install ${params.BROWSER}"
+                    }
+                }
             }
         }
 
