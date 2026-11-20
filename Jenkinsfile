@@ -16,7 +16,7 @@ pipeline {
     parameters {
         choice(
             name: 'TARGET_ENV',
-            choices: ['staging', 'qa'],
+            choices: ['local', 'staging', 'qa'],
             description: 'Target test environment'
         )
         choice(
@@ -29,6 +29,8 @@ pipeline {
     environment {
         CI = 'true'
         HEADLESS = 'true'
+        BASE_URL = 'https://opensource-demo.orangehrmlive.com'
+        API_BASE_URL = 'http://localhost:3000/api'
         TEST_ENV = "${params.TARGET_ENV}"
     }
 
@@ -64,14 +66,6 @@ pipeline {
         stage('Run Playwright Tests') {
             steps {
                 withCredentials([
-                    string(
-                        credentialsId: 'pw-api-token',
-                        variable: 'API_TOKEN'
-                    ),
-                    string(
-                        credentialsId: 'pw-db-password',
-                        variable: 'DB_PASSWORD'
-                    ),
                     string(
                         credentialsId: 'orangehrm-username',
                         variable: 'ORANGEHRM_USERNAME'
@@ -139,7 +133,7 @@ Status: SUCCESS
 Build URL:
 ${env.BUILD_URL}
 """,
-                to: 'your-email@example.com'
+                to: 'deepakkhadkaqa@gmail.com'
             )
         }
 
