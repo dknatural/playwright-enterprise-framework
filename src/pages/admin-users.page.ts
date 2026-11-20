@@ -12,7 +12,7 @@ export type UserSearchCriteria = {
 
 export type NewSystemUser = {
   role: UserRole;
-  employeeName: string;
+  employeeNameSearch: string;
   status: UserStatus;
   username: string;
   password: string;
@@ -52,6 +52,12 @@ export class AdminUsersPage {
     return this.page.getByText(/\(\d+\) Records? Found/);
   }
 
+  private get noRecordsFound(): Locator {
+    return this.page
+      .locator('span.oxd-text--span')
+      .getByText('No Records Found', { exact: true });
+  }
+
   private get rows(): Locator {
     return this.page.locator('.oxd-table-body').getByRole('row');
   }
@@ -75,12 +81,20 @@ export class AdminUsersPage {
   }
 
   async getRecordCount(): Promise<number> {
+    if (await this.noRecordsFound.isVisible()) {
+      return 0;
+    }
+
     const text = (await this.recordsFound.textContent()) ?? '';
     const match = text.match(/\((\d+)\)/);
     if (!match) {
       throw new Error(`Could not read the System Users record count from "${text}".`);
     }
     return Number(match[1]);
+  }
+
+  async expectNoRecordsFound(): Promise<void> {
+    await expect(this.noRecordsFound).toBeVisible();
   }
 
   async getVisibleRowCount(): Promise<number> {
@@ -105,10 +119,7 @@ export class AdminUsersPage {
     }
     if (criteria.employeeName !== undefined) {
       const employeeField = this.fieldGroup('Employee Name').getByRole('textbox');
-      await employeeField.fill(criteria.employeeName);
-      await this.page
-        .getByRole('option', { name: criteria.employeeName, exact: true })
-        .click();
+      await this.selectFirstEmployee(employeeField, criteria.employeeName);
     }
     if (criteria.status !== undefined) {
       await this.selectValue('Status', criteria.status);
@@ -145,10 +156,7 @@ export class AdminUsersPage {
   async fillNewUser(user: NewSystemUser): Promise<void> {
     await this.selectValue('User Role', user.role);
     const employeeField = this.fieldGroup('Employee Name').getByRole('textbox');
-    await employeeField.fill(user.employeeName);
-    await this.page
-      .getByRole('option', { name: user.employeeName, exact: true })
-      .click();
+    await this.selectFirstEmployee(employeeField, user.employeeNameSearch);
     await this.selectValue('Status', user.status);
     await this.fieldGroup('Username').getByRole('textbox').fill(user.username);
     await this.fieldGroup('Password').getByRole('textbox').fill(user.password);
@@ -185,6 +193,7 @@ export class AdminUsersPage {
   }
 
   async deleteIfPresent(username: string): Promise<void> {
+    await this.goto();
     await this.applySearch({ username });
     const row = await this.getRow(username);
     if ((await row.count()) === 0) {
@@ -198,11 +207,31 @@ export class AdminUsersPage {
 
   private async ensureFiltersVisible(): Promise<void> {
     const usernameField = this.fieldGroup('Username').getByRole('textbox');
-    if (await usernameField.isVisible()) {
-      return;
+    if (!(await this.systemUsersHeading.isVisible())) {
+      await this.goto();
     }
-    await this.systemUsersHeading.locator('..').getByRole('button').click();
-    await expect(usernameField).toBeVisible();
+    if (!(await usernameField.isVisible())) {
+      await this.systemUsersHeading.locator('..').getByRole('button').click();
+      await expect(usernameField).toBeVisible();
+    }
+  }
+
+  private async selectFirstEmployee(input: Locator, search: string): Promise<string> {
+    await input.fill(search);
+    const option = this.page
+      .locator('.oxd-autocomplete-dropdown .oxd-autocomplete-option')
+      .filter({ hasNotText: /Searching|No Records Found/ })
+      .first();
+    await expect(
+      option,
+      `No employee suggestions found for "${search}".`,
+    ).toBeVisible({ timeout: 15_000 });
+    const employeeName = (await option.textContent())?.trim();
+    if (!employeeName) {
+      throw new Error('The employee autocomplete returned a blank option.');
+    }
+    await option.click();
+    return employeeName;
   }
 
   private fieldGroup(label: string): Locator {

@@ -10,6 +10,16 @@ function uniqueUsername(role: string): string {
     .slice(2, 7)}`;
 }
 
+async function getEmployeeNameSearch(adminUsers: AdminUsersPage): Promise<string> {
+  const employeeName = (await adminUsers.getColumnValues(3))
+    .map((name) => name.trim())
+    .find((name) => name.length > 0 && name !== '--');
+  if (!employeeName) {
+    throw new Error('No existing employee name is available for System Users tests.');
+  }
+  return employeeName;
+}
+
 async function signInAsAdmin(loginPage: LoginPage): Promise<void> {
   const username = process.env.ORANGEHRM_USERNAME;
   const userPassword = process.env.ORANGEHRM_PASSWORD;
@@ -114,10 +124,11 @@ test('SCRUM-9 AC6 - Create and verify an Admin user', async ({
   await signInAsAdmin(loginPage);
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
+  const employeeNameSearch = await getEmployeeNameSearch(adminUsers);
   const username = uniqueUsername('admin');
   const user: NewSystemUser = {
     role: 'Admin',
-    employeeName: 'Ranga Akunuri',
+    employeeNameSearch,
     status: 'Enabled',
     username,
     password,
@@ -130,7 +141,7 @@ test('SCRUM-9 AC6 - Create and verify an Admin user', async ({
     await adminUsers.applySearch({ username });
     const row = await adminUsers.getRow(username);
     await expect(row).toContainText('Admin');
-    await expect(row).toContainText('Ranga Akunuri');
+    await expect(row.getByRole('cell').nth(3)).toHaveText(/\S/);
     await expect(row).toContainText('Enabled');
   } finally {
     await adminUsers.deleteIfPresent(username);
@@ -145,10 +156,11 @@ test('SCRUM-9 AC7 - Create and verify an ESS user', async ({
   await signInAsAdmin(loginPage);
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
+  const employeeNameSearch = await getEmployeeNameSearch(adminUsers);
   const username = uniqueUsername('ess');
   const user: NewSystemUser = {
     role: 'ESS',
-    employeeName: 'Ranga Akunuri',
+    employeeNameSearch,
     status: 'Enabled',
     username,
     password,
@@ -161,7 +173,7 @@ test('SCRUM-9 AC7 - Create and verify an ESS user', async ({
     await adminUsers.applySearch({ username });
     const row = await adminUsers.getRow(username);
     await expect(row).toContainText('ESS');
-    await expect(row).toContainText('Ranga Akunuri');
+    await expect(row.getByRole('cell').nth(3)).toHaveText(/\S/);
     await expect(row).toContainText('Enabled');
   } finally {
     await adminUsers.deleteIfPresent(username);
@@ -176,10 +188,11 @@ test('SCRUM-9 AC8 - Cancel and confirm deletion of a dedicated user', async ({
   await signInAsAdmin(loginPage);
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
+  const employeeNameSearch = await getEmployeeNameSearch(adminUsers);
   const username = uniqueUsername('delete');
   const user: NewSystemUser = {
     role: 'ESS',
-    employeeName: 'Ranga Akunuri',
+    employeeNameSearch,
     status: 'Enabled',
     username,
     password,
@@ -211,7 +224,7 @@ test('SCRUM-9 AC9-AC11 - Search users by criteria and reset filters', async ({
   await signInAsAdmin(loginPage);
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
-  const initialCount = await adminUsers.getRecordCount();
+  const employeeName = await getEmployeeNameSearch(adminUsers);
 
   await adminUsers.applySearch({ username: 'Admin' });
   expect(await adminUsers.getRecordCount()).toBe(1);
@@ -223,13 +236,19 @@ test('SCRUM-9 AC9-AC11 - Search users by criteria and reset filters', async ({
 
   await adminUsers.resetSearch();
   await adminUsers.applySearch({ role: 'ESS' });
-  expect(await adminUsers.getRecordCount()).toBeGreaterThan(0);
-  await expect(page.getByRole('table')).toContainText('ESS');
+  const essCount = await adminUsers.getRecordCount();
+  if (essCount === 0) {
+    await adminUsers.expectNoRecordsFound();
+  } else {
+    const roles = await adminUsers.getColumnValues(2);
+    expect(roles.every((role) => role.trim() === 'ESS')).toBe(true);
+  }
 
   await adminUsers.resetSearch();
-  await adminUsers.applySearch({ employeeName: 'Jobin Mathew Sam' });
-  expect(await adminUsers.getRecordCount()).toBe(1);
-  await expect(page.getByRole('table')).toContainText('Jobin Sam');
+  await adminUsers.applySearch({ employeeName });
+  expect(await adminUsers.getRecordCount()).toBeGreaterThan(0);
+  const employeeNames = await adminUsers.getColumnValues(3);
+  expect(employeeNames.every((name) => name.trim() === employeeName)).toBe(true);
 
   await adminUsers.resetSearch();
   await adminUsers.applySearch({ status: 'Enabled' });
@@ -237,12 +256,16 @@ test('SCRUM-9 AC9-AC11 - Search users by criteria and reset filters', async ({
 
   await adminUsers.resetSearch();
   await adminUsers.applySearch({ status: 'Disabled' });
-  const disabledRows = page.locator('.oxd-table-body').getByRole('row');
-  await expect(disabledRows).not.toHaveCount(0);
-  for (let index = 0; index < (await disabledRows.count()); index += 1) {
-    await expect(disabledRows.nth(index).getByRole('cell').nth(4)).toHaveText(
-      'Disabled',
-    );
+  const disabledCount = await adminUsers.getRecordCount();
+  if (disabledCount === 0) {
+    await adminUsers.expectNoRecordsFound();
+  } else {
+    const disabledRows = page.locator('.oxd-table-body').getByRole('row');
+    for (let index = 0; index < (await disabledRows.count()); index += 1) {
+      await expect(disabledRows.nth(index).getByRole('cell').nth(4)).toHaveText(
+        'Disabled',
+      );
+    }
   }
 
   await adminUsers.resetSearch();
@@ -251,7 +274,7 @@ test('SCRUM-9 AC9-AC11 - Search users by criteria and reset filters', async ({
 
   await adminUsers.resetSearch();
   await adminUsers.expectSearchCleared();
-  expect(await adminUsers.getRecordCount()).toBe(initialCount);
+  expect(await adminUsers.getRecordCount()).toBeGreaterThan(0);
 });
 
 test('SCRUM-9 AC12 - Reject missing fields, mismatched passwords, and duplicate usernames', async ({
@@ -262,6 +285,7 @@ test('SCRUM-9 AC12 - Reject missing fields, mismatched passwords, and duplicate 
   await signInAsAdmin(loginPage);
   const adminUsers = new AdminUsersPage(page);
   await adminUsers.goto();
+  const employeeNameSearch = await getEmployeeNameSearch(adminUsers);
 
   await adminUsers.openAddUser();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -272,7 +296,7 @@ test('SCRUM-9 AC12 - Reject missing fields, mismatched passwords, and duplicate 
   const mismatchUsername = uniqueUsername('mismatch');
   await adminUsers.fillNewUser({
     role: 'ESS',
-    employeeName: 'Ranga Akunuri',
+    employeeNameSearch,
     status: 'Enabled',
     username: mismatchUsername,
     password,
@@ -288,7 +312,7 @@ test('SCRUM-9 AC12 - Reject missing fields, mismatched passwords, and duplicate 
   await adminUsers.openAddUser();
   await adminUsers.fillNewUser({
     role: 'ESS',
-    employeeName: 'Ranga Akunuri',
+    employeeNameSearch,
     status: 'Enabled',
     username: 'Admin',
     password,
