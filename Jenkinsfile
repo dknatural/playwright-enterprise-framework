@@ -1,63 +1,164 @@
+
 pipeline {
-  agent {
-    docker {
-      // Match this image version to the installed @playwright/test version.
-      image 'mcr.microsoft.com/playwright:v1.58.0-noble'
-      args '--ipc=host'
-      reuseNode true
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 45, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(
+            numToKeepStr: '20',
+            artifactNumToKeepStr: '10'
+        ))
+        skipDefaultCheckout(true)
     }
-  }
-  options {
-    timestamps()
-    timeout(time: 45, unit: 'MINUTES')
-    disableConcurrentBuilds()
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
-  }
-  parameters {
-    choice(name: 'TARGET_ENV', choices: ['staging', 'qa'], description: 'Non-production target environment')
-    choice(name: 'BROWSER', choices: ['chromium', 'firefox', 'webkit', 'all'], description: 'Browser project')
-  }
-  environment {
-    CI = 'true'
-    HEADLESS = 'true'
-    // Set URLs and non-secret DB settings in Jenkins folder/job configuration.
-    // BASE_URL, API_BASE_URL, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_SSL
-  }
-  stages {
-    stage('Install') {
-      steps {
-        sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless && rm -rf /var/lib/apt/lists/* && node --version && java -version && npm ci --no-audit --no-fund'
-      }
+
+    parameters {
+        choice(
+            name: 'TARGET_ENV',
+            choices: ['staging', 'qa'],
+            description: 'Target test environment'
+        )
+        choice(
+            name: 'BROWSER',
+            choices: ['chromium', 'firefox', 'webkit', 'all'],
+            description: 'Browser project'
+        )
     }
-    stage('Typecheck') {
-      steps { sh 'npm run typecheck' }
+
+    environment {
+        CI = 'true'
+        HEADLESS = 'true'
+        TEST_ENV = "${params.TARGET_ENV}"
     }
-    stage('Test') {
-      steps {
-        withCredentials([
-          string(credentialsId: 'pw-api-token', variable: 'API_TOKEN'),
-          string(credentialsId: 'pw-db-password', variable: 'DB_PASSWORD'),
-          string(credentialsId: 'orangehrm-username', variable: 'ORANGEHRM_USERNAME'),
-          string(credentialsId: 'orangehrm-password', variable: 'ORANGEHRM_PASSWORD')
-        ]) {
-          script {
-            def projectArg = params.BROWSER == 'all' ? '' : "--project=${params.BROWSER}"
-            withEnv(["TEST_ENV=${params.TARGET_ENV}"]) {
-              sh "npm run allure:clean && npx playwright test ${projectArg}"
+
+    stages {
+
+        stage('Checkout GitHub') {
+            steps {
+                checkout scm
             }
-          }
         }
-      }
+
+        stage('Verify Tools') {
+            steps {
+                bat 'node --version'
+                bat 'npm --version'
+                bat 'java -version'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm ci --no-audit --no-fund'
+                bat 'npx playwright install chromium firefox webkit'
+            }
+        }
+
+        stage('TypeScript Validation') {
+            steps {
+                bat 'npm run typecheck'
+            }
+        }
+
+        stage('Run Playwright Tests') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'pw-api-token',
+                        variable: 'API_TOKEN'
+                    ),
+                    string(
+                        credentialsId: 'pw-db-password',
+                        variable: 'DB_PASSWORD'
+                    ),
+                    string(
+                        credentialsId: 'orangehrm-username',
+                        variable: 'ORANGEHRM_USERNAME'
+                    ),
+                    string(
+                        credentialsId: 'orangehrm-password',
+                        variable: 'ORANGEHRM_PASSWORD'
+                    )
+                ]) {
+                    script {
+                        def projectArg = params.BROWSER == 'all'
+                            ? ''
+                            : "--project=${params.BROWSER}"
+
+                        bat 'npm run allure:clean'
+
+                        bat "npx playwright test ${projectArg}"
+                    }
+                }
+            }
+        }
     }
-  }
-  post {
-    always {
-      sh 'if [ -n "$(find allure-results -type f -print -quit 2>/dev/null)" ]; then npm run allure:generate; else echo "No Allure results were produced."; fi'
-      junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
-      archiveArtifacts allowEmptyArchive: true, artifacts: 'allure-report/**,allure-results/**,playwright-report/**,test-results/**', fingerprint: true
-      // Install Jenkins HTML Publisher plugin to expose a browsable report:
-      // publishHTML(target: [reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML', keepAll: true, allowMissing: true])
-      cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+
+    post {
+        always {
+            script {
+                if (fileExists('allure-results')) {
+                    try {
+                        allure(
+                            includeProperties: false,
+                            jdk: '',
+                            results: [[path: 'allure-results']]
+                        )
+                    } catch (Exception e) {
+                        echo "Allure publishing failed: ${e.message}"
+                    }
+                } else {
+                    echo 'No Allure results directory found.'
+                }
+            }
+
+            junit(
+                allowEmptyResults: true,
+                testResults: 'test-results/junit.xml'
+            )
+
+            archiveArtifacts(
+                allowEmptyArchive: true,
+                artifacts: 'allure-results/**,playwright-report/**,test-results/**',
+                fingerprint: true
+            )
+        }
+
+        success {
+            emailext(
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """Playwright Automation Completed Successfully.
+
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_NUMBER}
+Environment: ${params.TARGET_ENV}
+Browser: ${params.BROWSER}
+Status: SUCCESS
+
+Build URL:
+${env.BUILD_URL}
+""",
+                to: 'your-email@example.com'
+            )
+        }
+
+        failure {
+            emailext(
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """Playwright Automation Failed.
+
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_NUMBER}
+Environment: ${params.TARGET_ENV}
+Browser: ${params.BROWSER}
+Status: FAILURE
+
+Check console output:
+${env.BUILD_URL}console
+""",
+                to: 'deepakkhadkaqa@gmail.com'
+            )
+        }
     }
-  }
 }
