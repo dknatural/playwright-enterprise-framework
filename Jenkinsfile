@@ -19,10 +19,17 @@ pipeline {
             choices: ['local', 'staging', 'qa'],
             description: 'Target test environment'
         )
+
         choice(
             name: 'BROWSER',
             choices: ['chromium', 'firefox', 'webkit', 'all'],
             description: 'Browser project'
+        )
+
+        string(
+            name: 'EMAIL_RECIPIENTS',
+            defaultValue: 'deepakkhadkaqa@gmail.com',
+            description: 'Email addresses separated by commas'
         )
     }
 
@@ -139,8 +146,11 @@ Status: SUCCESS
 
 Build URL:
 ${env.BUILD_URL}
+
+Allure Report:
+${env.BUILD_URL}allure/
 """,
-                to: 'deepakkhadkaqa@gmail.com'
+                to: params.EMAIL_RECIPIENTS
             )
         }
 
@@ -155,10 +165,16 @@ Environment: ${params.TARGET_ENV}
 Browser: ${params.BROWSER}
 Status: FAILURE
 
-Check console output:
+Build URL:
+${env.BUILD_URL}
+
+Allure Report:
+${env.BUILD_URL}allure/
+
+Console Output:
 ${env.BUILD_URL}console
 """,
-                to: 'deepakkhadkaqa@gmail.com'
+                to: params.EMAIL_RECIPIENTS
             )
         }
     }
